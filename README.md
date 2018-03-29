@@ -1,5 +1,5 @@
 
-# Firewroks-2d
+# Fireworks-2d
 This is a simple attempt at creating fireworks using particles and simple physics.
 This program is coded in C using SDL to open a window to draw to. It can run in any resolution 
 but the number of fireworks and height they reach will have to be tweaked depending on your screen resolution.
