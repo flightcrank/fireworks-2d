@@ -3,7 +3,7 @@
 This is a simple attempt at creating fireworks using particles and simple physics.
 This program is coded in C using SDL to open a window to draw to. It can run in any resolution 
 but the number of fireworks and height they reach will have to be tweaked depending on your screen resolution.
-the can be adjusted by changeing the SCALE and FIREWORKS constants at the beginning of the main.c source file
+this can be adjusted by changing the SCALE and FIREWORKS constants at the beginning of the main.c source file
 
 You will need to have SDL (version 2) installed on your system for this program to work.
 This program should compile and run with no or very little modification and on 
@@ -12,8 +12,7 @@ compilation instructions.
 
 Compilation instructions on a Linux system are as follows..
 
-	gcc main.c renderer.c -lm `sdl2-config --cflags --libs` -o metaballs-2d
-    
+	$ gcc main.c renderer.c vector.c -lm `sdl2-config --cflags --libs` -o fireworks    
 
 ## Images 
 ![animation](https://i.imgur.com/ioOZAZg.gif)
