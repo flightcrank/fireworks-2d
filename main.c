@@ -10,14 +10,13 @@
 #define SCREEN_WIDTH 640	//window height
 #define SCREEN_HEIGHT 480	//window width
 #define FIREWORKS 10		//number of fireworks
-#define PARTICALS 100		//number of particles a firework explodes into
+#define PARTICALS 50		//number of particles a firework explodes into
 #define SCALE .02			//adjust how high the fireworks will go to suit your screen resolution
 
 struct partical {
 
 	struct vector2d pos;	//position
 	struct vector2d vel;	//velocity
-	struct vector2d acel;	//acceleration
 	float alpha;			//acceleration
 };
 
@@ -91,27 +90,21 @@ int main (int argc, char *args[]) {
 		//draw background
 		SDL_RenderClear(renderer);
 		
+		SDL_Rect dest;
+		
 		//draw the fireworks
 		for (i = 0; i < FIREWORKS; i++) {
 			
-			SDL_Rect dest;
-			dest.x = fwrk[i].property.pos.x;
-			dest.y = fwrk[i].property.pos.y;
-			dest.w = 4;
-			dest.h = 4;
-			
 			//draw firework
 			SDL_SetTextureColorMod(ball_t, fwrk[i].r, fwrk[i].g, fwrk[i].b);
-			SDL_SetTextureAlphaMod(ball_t, (uint8_t) fwrk[i].property.alpha);
-			SDL_RenderCopy(renderer, ball_t, NULL, &dest);
 			
 			//draw particles
 			for (j = 0; j < PARTICALS; j++) {
 			
 				dest.x = fwrk[i].ptcls[j].pos.x;
 				dest.y = fwrk[i].ptcls[j].pos.y;
-				dest.w = 3;
-				dest.h = 3;
+				dest.w = 4;
+				dest.h = 4;
 				
 				//draw particles 
 				SDL_SetTextureAlphaMod(ball_t, (uint8_t) fwrk[i].ptcls[j].alpha);
@@ -121,9 +114,6 @@ int main (int argc, char *args[]) {
 			//update physics
 			update(i);
 		}
-		
-		//apply gravity
-		force(gravity);
 		
 		//draw to the screen
 		SDL_RenderPresent(renderer);
@@ -152,21 +142,6 @@ int main (int argc, char *args[]) {
 	return 0;
 }
 
-void force(struct vector2d force) {
-	
-	int i, j;
-	
-	for (i = 0; i < FIREWORKS; i++) {
-		
-		add_vector(&fwrk[i].property.acel, &force);
-	
-		for(j = 0; j < PARTICALS; j++) {
-				
-			add_vector(&fwrk[i].ptcls[j].acel, &force);
-		}
-	}
-}
-
 void update(int i) {
 	
 	int j;
@@ -178,7 +153,7 @@ void update(int i) {
 		
 		//calculate particle physics
 		for(j = 0; j < PARTICALS; j++) {
-
+			
 			if (fwrk[i].ptcls[j].alpha > 0) {
 				
 				fwrk[i].ptcls[j].alpha -= 5;
@@ -198,10 +173,7 @@ void update(int i) {
 			add_vector(&fwrk[i].ptcls[j].pos, &fwrk[i].ptcls[j].vel);
 			
 			//change velocity based on acceleration
-			add_vector(&fwrk[i].ptcls[j].vel, &fwrk[i].ptcls[j].acel);
-			
-			//reset acceleration vector to 0 at the start of every frame
-			multiply_vector(&fwrk[i].ptcls[j].acel, 0);
+			add_vector(&fwrk[i].ptcls[j].vel, &gravity);
 		}
 		
 	//calculate firework physics
@@ -211,25 +183,13 @@ void update(int i) {
 		add_vector(&fwrk[i].property.pos, &fwrk[i].property.vel);
 		
 		//change velocity based on acceleration
-		add_vector(&fwrk[i].property.vel, &fwrk[i].property.acel);
+		add_vector(&fwrk[i].property.vel, &gravity);
 		
-		multiply_vector(&fwrk[i].property.acel, 0);
-		
-			
 		for(j = 0; j < PARTICALS; j++) {
 		
 			fwrk[i].ptcls[j].pos.x = fwrk[i].property.pos.x;
 			fwrk[i].ptcls[j].pos.y = fwrk[i].property.pos.y;
 		}
-	}
-	
-	//reset acceleration vector to 0 at the start of every frame
-	multiply_vector(&fwrk[i].property.acel, 0);
-
-	for(j = 0; j < PARTICALS; j++) {
-
-		//reset acceleration vector to 0 at the start of every frame
-		multiply_vector(&fwrk[i].ptcls[j].acel, 0);
 	}
 }
 
@@ -253,8 +213,8 @@ void init_firework(int i) {
 		
 		fwrk[i].ptcls[j].pos.x = fwrk[i].property.pos.x;
 		fwrk[i].ptcls[j].pos.y = fwrk[i].property.pos.y;
-		fwrk[i].ptcls[j].vel.x = sin(rand());
-		fwrk[i].ptcls[j].vel.y = sin(rand());
+		fwrk[i].ptcls[j].vel.x = sin(rand() % 360);
+		fwrk[i].ptcls[j].vel.y = sin(rand() % 360);
 		fwrk[i].ptcls[j].alpha = 255;
 		multiply_vector(&fwrk[i].ptcls[j].vel, rand() % 4 + 1);
 	}
@@ -297,7 +257,7 @@ int init(int width, int height, int argc, char *args[]) {
 	
 	//set up screen texture
 	ball_t = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, ball_pb.width, ball_pb.height);
-	SDL_SetTextureBlendMode(ball_t, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureBlendMode(ball_t, SDL_BLENDMODE_ADD);
 	
 	if (ball_pb.pixels == NULL) { 
 		
