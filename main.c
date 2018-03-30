@@ -11,15 +11,15 @@
 #define SCREEN_HEIGHT 720	//window width
 #define FIREWORKS 20		//number of fireworks
 #define PARTICALS 50		//number of particles a firework explodes into
-#define SCALE .018			//adjust how high the fireworks will go to suit your screen resolution
-#define TRAIL 2				//trail the particles leave behind
+#define SCALE .015			//adjust how high the fireworks will go to suit your screen resolution
+#define TRAIL 3				//trail the particles leave behind
 
 struct partical {
 
-	struct vector2d pos;		//position
-	struct vector2d vel;		//velocity
+	struct vector2d pos;			//position
+	struct vector2d vel;			//velocity
 	struct vector2d trail[TRAIL];	//array of previous positions
-	float alpha;				//acceleration
+	float alpha;					//acceleration
 };
 
 struct firework {
@@ -195,18 +195,14 @@ void update(int i) {
 		//calculate particle physics
 		for(j = 0; j < PARTICALS; j++) {
 			
-			if (fireworks[i].particles[j].alpha > 0) {
+			if (fireworks[i].particles[j].alpha >= 5) {
 				
 				fireworks[i].particles[j].alpha -= 5;
 
+			//particles have faded away
 			} else {
 				
 				fireworks[i].particles[j].alpha -= 0;
-			}
-			
-			//particles have faded away
-			if(fireworks[i].particles[0].alpha <= 0) {
-				
 				init_firework(i);
 			}
 			
@@ -220,7 +216,7 @@ void update(int i) {
 			//change velocity based on acceleration
 			add_vector(&fireworks[i].particles[j].vel, &gravity);
 
-			//keep track of fireworks previous positions
+			//keep track th fireworks particles previous positions
 			for(k = 0; k < TRAIL; k++) {
 				
 				//store current cell position in a temp variable
@@ -298,6 +294,7 @@ void init_firework(int i) {
 		fireworks[i].property.trail[k].y = fireworks[i].property.pos.y;
 	}
 
+	
 	for (j = 0; j < PARTICALS; j++) {
 		
 		//set up firework's particle
@@ -311,8 +308,8 @@ void init_firework(int i) {
 		//record of previous positions for each particle
 		for (k = 0; k < TRAIL; k++) {
 		
-			fireworks[i].particles[j].trail[k].x = 0;
-			fireworks[i].particles[j].trail[k].y = 0;
+			fireworks[i].particles[j].trail[k].x = fireworks[i].property.pos.x;
+			fireworks[i].particles[j].trail[k].y = fireworks[i].property.pos.y;
 		}
 	}
 }
