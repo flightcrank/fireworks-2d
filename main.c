@@ -9,9 +9,9 @@
 
 #define SCREEN_WIDTH 1290	//window height
 #define SCREEN_HEIGHT 720	//window width
-#define FIREWORKS 10		//number of fireworks
+#define FIREWORKS 20		//number of fireworks
 #define PARTICALS 50		//number of particles a firework explodes into
-#define SCALE .017			//adjust how high the fireworks will go to suit your screen resolution
+#define SCALE .018			//adjust how high the fireworks will go to suit your screen resolution
 #define TRAIL 2				//trail the particles leave behind
 
 struct partical {
@@ -138,17 +138,17 @@ int main (int argc, char *args[]) {
 					
 					SDL_SetTextureAlphaMod(ball_t, (uint8_t) fireworks[i].particles[j].alpha);
 					SDL_RenderCopy(renderer, ball_t, NULL, &dest);
-				}
 				
-				//draw particle trails
-				for(k = 0; k < TRAIL; k++) {
-				
-					dest.x = fireworks[i].particles[j].trail[k].x;
-					dest.y = fireworks[i].particles[j].trail[k].y;
-					dest.w = 3;
-					dest.h = 3;
+					//draw particle trails
+					for(k = 0; k < TRAIL; k++) {
 					
-					SDL_RenderCopy(renderer, ball_t, NULL, &dest);
+						dest.x = fireworks[i].particles[j].trail[k].x;
+						dest.y = fireworks[i].particles[j].trail[k].y;
+						dest.w = 3;
+						dest.h = 3;
+						
+						SDL_RenderCopy(renderer, ball_t, NULL, &dest);
+					}
 				}
 			}
 			
@@ -294,8 +294,8 @@ void init_firework(int i) {
 	//record of previous positions for each firework
 	for (k = 0; k < TRAIL; k++) {
 	
-		fireworks[i].property.trail[k].x = 0;
-		fireworks[i].property.trail[k].y = 0;
+		fireworks[i].property.trail[k].x = fireworks[i].property.pos.x;
+		fireworks[i].property.trail[k].y = fireworks[i].property.pos.y;
 	}
 
 	for (j = 0; j < PARTICALS; j++) {
