@@ -15,4 +15,5 @@ Compilation instructions on a Linux system are as follows..
 	$ gcc main.c renderer.c vector.c -lm `sdl2-config --cflags --libs` -o fireworks    
 
 ## Images 
-![animation](https://i.imgur.com/ioOZAZg.gif)
+![animation](https://i.imgur.com/M0i3bWg.gif)
+gif frame rate is choppy, looks much smoother irl

@@ -7,24 +7,26 @@
 #include "renderer.h"
 #include "vector.h"
 
-#define SCREEN_WIDTH 640	//window height
-#define SCREEN_HEIGHT 480	//window width
+#define SCREEN_WIDTH 1290	//window height
+#define SCREEN_HEIGHT 720	//window width
 #define FIREWORKS 10		//number of fireworks
 #define PARTICALS 50		//number of particles a firework explodes into
-#define SCALE .02			//adjust how high the fireworks will go to suit your screen resolution
+#define SCALE .017			//adjust how high the fireworks will go to suit your screen resolution
+#define TRAIL 2				//trail the particles leave behind
 
 struct partical {
 
-	struct vector2d pos;	//position
-	struct vector2d vel;	//velocity
-	float alpha;			//acceleration
+	struct vector2d pos;		//position
+	struct vector2d vel;		//velocity
+	struct vector2d trail[TRAIL];	//array of previous positions
+	float alpha;				//acceleration
 };
 
 struct firework {
 
-	struct partical property;			//contains fireworks position,vel and accel property's
-	struct partical ptcls[PARTICALS];	//particles firework will explode into
-	uint8_t r;							//firework colour
+	struct partical property;				//contains fireworks position,vel and accel property's
+	struct partical particles[PARTICALS];	//particles firework will explode into
+	uint8_t r;								//firework colour
 	uint8_t g;
 	uint8_t b;
 };
@@ -41,7 +43,7 @@ SDL_Renderer *renderer;			//The renderer SDL will use to draw to the screen
 SDL_Texture *ball_t;
 struct pix_buff ball_pb;
 int width, height;				//used if fullscreen
-struct firework fwrk[FIREWORKS];
+struct firework fireworks[FIREWORKS];
 struct vector2d gravity;
 
 int main (int argc, char *args[]) {
@@ -62,7 +64,7 @@ int main (int argc, char *args[]) {
 	gravity.x = 0;
 	gravity.y = 0.2;
 	
-	int i, j;
+	int i, j, k;
 	
 	//populate fireworks property's
 	for (i = 0; i < FIREWORKS; i++) {
@@ -73,10 +75,10 @@ int main (int argc, char *args[]) {
 	int sleep = 0;
 	int quit = 0;
 	Uint32 next_game_tick = SDL_GetTicks();
-	
+		
 	//render loop
 	while(quit == 0) {
-	
+		
 		//check for new events every frame
 		SDL_PumpEvents();
 
@@ -94,21 +96,60 @@ int main (int argc, char *args[]) {
 		
 		//draw the fireworks
 		for (i = 0; i < FIREWORKS; i++) {
-			
+		
 			//draw firework
-			SDL_SetTextureColorMod(ball_t, fwrk[i].r, fwrk[i].g, fwrk[i].b);
+			dest.x = fireworks[i].property.pos.x;
+			dest.y = fireworks[i].property.pos.y;
+			dest.w = 5;
+			dest.h = 5;
+		
+			SDL_SetTextureColorMod(ball_t, fireworks[i].r, fireworks[i].g, fireworks[i].b);
+			SDL_SetTextureAlphaMod(ball_t, (uint8_t) fireworks[i].property.alpha);
+			float alpha = fireworks[i].property.alpha;
+			
+			//draw fireworks if they have not yet exploded
+			if (alpha) {
+				
+				SDL_RenderCopy(renderer, ball_t, NULL, &dest);
+			}
+			
+			//draw firework trails
+			for(k = 0; k < TRAIL; k++) {
+			
+				dest.x = fireworks[i].property.trail[k].x;
+				dest.y = fireworks[i].property.trail[k].y;
+				dest.w = 3;
+				dest.h = 3;
+				
+				SDL_RenderCopy(renderer, ball_t, NULL, &dest);
+			}
 			
 			//draw particles
 			for (j = 0; j < PARTICALS; j++) {
 			
-				dest.x = fwrk[i].ptcls[j].pos.x;
-				dest.y = fwrk[i].ptcls[j].pos.y;
-				dest.w = 4;
-				dest.h = 4;
+				dest.x = fireworks[i].particles[j].pos.x;
+				dest.y = fireworks[i].particles[j].pos.y;
+				dest.w = 3;
+				dest.h = 3;
 				
-				//draw particles 
-				SDL_SetTextureAlphaMod(ball_t, (uint8_t) fwrk[i].ptcls[j].alpha);
-				SDL_RenderCopy(renderer, ball_t, NULL, &dest);
+				//draw particles if the firework has exploded and has no alpha
+				
+				if (!alpha) {
+					
+					SDL_SetTextureAlphaMod(ball_t, (uint8_t) fireworks[i].particles[j].alpha);
+					SDL_RenderCopy(renderer, ball_t, NULL, &dest);
+				}
+				
+				//draw particle trails
+				for(k = 0; k < TRAIL; k++) {
+				
+					dest.x = fireworks[i].particles[j].trail[k].x;
+					dest.y = fireworks[i].particles[j].trail[k].y;
+					dest.w = 3;
+					dest.h = 3;
+					
+					SDL_RenderCopy(renderer, ball_t, NULL, &dest);
+				}
 			}
 			
 			//update physics
@@ -121,11 +162,11 @@ int main (int argc, char *args[]) {
 		//time it takes to render 1 frame in milliseconds
 		next_game_tick += 1000 / 60;
 		sleep = next_game_tick - SDL_GetTicks();
-	
+		
 		if( sleep >= 0 ) {
             				
 			SDL_Delay(sleep);
-		}
+		} 
 	}
 
 	//free renderer and all textures used with it
@@ -144,79 +185,135 @@ int main (int argc, char *args[]) {
 
 void update(int i) {
 	
-	int j;
+	int j, k;
 	
 	//fireworks has reached its peak
-	if (fwrk[i].property.vel.y >= 0 ) {
+	if (fireworks[i].property.vel.y >= 0 ) {
 			
-			fwrk[i].property.alpha = 0;
+			fireworks[i].property.alpha = 0;
 		
 		//calculate particle physics
 		for(j = 0; j < PARTICALS; j++) {
 			
-			if (fwrk[i].ptcls[j].alpha > 0) {
+			if (fireworks[i].particles[j].alpha > 0) {
 				
-				fwrk[i].ptcls[j].alpha -= 5;
+				fireworks[i].particles[j].alpha -= 5;
 
 			} else {
 				
-				fwrk[i].ptcls[j].alpha -= 0;
+				fireworks[i].particles[j].alpha -= 0;
 			}
 			
 			//particles have faded away
-			if(fwrk[i].ptcls[0].alpha <= 0) {
+			if(fireworks[i].particles[0].alpha <= 0) {
 				
 				init_firework(i);
 			}
 			
+			//save particle previous position
+			float prev_pos_x = fireworks[i].particles[j].pos.x;
+			float prev_pos_y = fireworks[i].particles[j].pos.y;
+			
 			//change position based on velocity
-			add_vector(&fwrk[i].ptcls[j].pos, &fwrk[i].ptcls[j].vel);
+			add_vector(&fireworks[i].particles[j].pos, &fireworks[i].particles[j].vel);
 			
 			//change velocity based on acceleration
-			add_vector(&fwrk[i].ptcls[j].vel, &gravity);
+			add_vector(&fireworks[i].particles[j].vel, &gravity);
+
+			//keep track of fireworks previous positions
+			for(k = 0; k < TRAIL; k++) {
+				
+				//store current cell position in a temp variable
+				float temp_x = fireworks[i].particles[j].trail[k].x;
+				float temp_y = fireworks[i].particles[j].trail[k].y;
+				
+				//update current cell with the last known prev position
+				fireworks[i].particles[j].trail[k].x = prev_pos_x;
+				fireworks[i].particles[j].trail[k].y = prev_pos_y;
+				
+				//update the prev position for the next iteration of the loop
+				prev_pos_x = temp_x;
+				prev_pos_y = temp_y;
+			}
 		}
 		
 	//calculate firework physics
 	} else {
-	
+		
+		//save fireworks previous position
+		float prev_pos_x = fireworks[i].property.pos.x;
+		float prev_pos_y = fireworks[i].property.pos.y;
+		
 		//change position based on velocity
-		add_vector(&fwrk[i].property.pos, &fwrk[i].property.vel);
+		add_vector(&fireworks[i].property.pos, &fireworks[i].property.vel);
 		
 		//change velocity based on acceleration
-		add_vector(&fwrk[i].property.vel, &gravity);
+		add_vector(&fireworks[i].property.vel, &gravity);
 		
+		//make all particle follow the fire work
 		for(j = 0; j < PARTICALS; j++) {
 		
-			fwrk[i].ptcls[j].pos.x = fwrk[i].property.pos.x;
-			fwrk[i].ptcls[j].pos.y = fwrk[i].property.pos.y;
+			fireworks[i].particles[j].pos.x = fireworks[i].property.pos.x;
+			fireworks[i].particles[j].pos.y = fireworks[i].property.pos.y;
+		}
+		
+		//keep track of fireworks previous positions
+		for(k = 0; k < TRAIL; k++) {
+			
+			//store current cell position in a temp variable
+			float temp_x = fireworks[i].property.trail[k].x;
+			float temp_y = fireworks[i].property.trail[k].y;
+			
+			//update current cell with the last known prev position
+			fireworks[i].property.trail[k].x = prev_pos_x;
+			fireworks[i].property.trail[k].y = prev_pos_y;
+			
+			//update the prev position for the next iteration of the loop
+			prev_pos_x = temp_x;
+			prev_pos_y = temp_y;
 		}
 	}
 }
 
 void init_firework(int i) {
 	
-	int j;
+	int j, k;
 	
 	float vel_scale = SCALE * height;
 	
 	//set up firework property's
-	fwrk[i].property.pos.x = rand() % width;
-	fwrk[i].property.pos.y = height;
-	fwrk[i].property.vel.x = sin(rand());
-	fwrk[i].property.vel.y = (float) (rand() % 5 + (int) vel_scale)  * -1;
-	fwrk[i].property.alpha = 255;
-	fwrk[i].r = rand() % 155 + 100;
-	fwrk[i].g = rand() % 155 + 100;
-	fwrk[i].b = rand() % 155 + 100;
+	fireworks[i].property.pos.x = rand() % width;
+	fireworks[i].property.pos.y = height;
+	fireworks[i].property.vel.x = sin(rand());
+	fireworks[i].property.vel.y = (float) (rand() % 5 + (int) vel_scale)  * -1;
+	fireworks[i].property.alpha = 255;
+	fireworks[i].r = rand() % 155 + 100;
+	fireworks[i].g = rand() % 155 + 100;
+	fireworks[i].b = rand() % 155 + 100;
+	
+	//record of previous positions for each firework
+	for (k = 0; k < TRAIL; k++) {
+	
+		fireworks[i].property.trail[k].x = 0;
+		fireworks[i].property.trail[k].y = 0;
+	}
 
 	for (j = 0; j < PARTICALS; j++) {
 		
-		fwrk[i].ptcls[j].pos.x = fwrk[i].property.pos.x;
-		fwrk[i].ptcls[j].pos.y = fwrk[i].property.pos.y;
-		fwrk[i].ptcls[j].vel.x = sin(rand() % 360);
-		fwrk[i].ptcls[j].vel.y = sin(rand() % 360);
-		fwrk[i].ptcls[j].alpha = 255;
-		multiply_vector(&fwrk[i].ptcls[j].vel, rand() % 4 + 1);
+		//set up firework's particle
+		fireworks[i].particles[j].pos.x = fireworks[i].property.pos.x;
+		fireworks[i].particles[j].pos.y = fireworks[i].property.pos.y;
+		fireworks[i].particles[j].vel.x = sin(rand() % 360);
+		fireworks[i].particles[j].vel.y = sin(rand() % 360);
+		fireworks[i].particles[j].alpha = 255;
+		multiply_vector(&fireworks[i].particles[j].vel, rand() % 4 + 1);
+		
+		//record of previous positions for each particle
+		for (k = 0; k < TRAIL; k++) {
+		
+			fireworks[i].particles[j].trail[k].x = 0;
+			fireworks[i].particles[j].trail[k].y = 0;
+		}
 	}
 }
 
