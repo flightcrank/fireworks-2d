@@ -7,8 +7,8 @@
 #include "renderer.h"
 #include "vector.h"
 
-#define SCREEN_WIDTH 1290	//window height
-#define SCREEN_HEIGHT 720	//window width
+#define SCREEN_WIDTH 640	//window height
+#define SCREEN_HEIGHT 480	//window width
 #define FIREWORKS 10		//number of fireworks
 #define PARTICALS 50		//number of particles a firework explodes into
 #define SCALE .015			//adjust how high the fireworks will go to suit your screen resolution
@@ -129,8 +129,6 @@ int main (int argc, char *args[]) {
 					dest.w = 3 - size;
 					dest.h = 3 - size;
 				}
-				
-				printf("k = %d, size = %d\n", k, dest.w);
 				
 				SDL_RenderCopy(renderer, ball_t, NULL, &dest);
 				
