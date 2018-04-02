@@ -9,7 +9,7 @@
 
 #define SCREEN_WIDTH 1290	//window height
 #define SCREEN_HEIGHT 720	//window width
-#define FIREWORKS 20		//number of fireworks
+#define FIREWORKS 10		//number of fireworks
 #define PARTICALS 50		//number of particles a firework explodes into
 #define SCALE .015			//adjust how high the fireworks will go to suit your screen resolution
 #define TRAIL 3				//trail the particles leave behind
@@ -38,13 +38,13 @@ void update(int index);
 void init_firework(int index);
 
 //globals
-SDL_Window* window = NULL;		//The window we'll be rendering to
-SDL_Renderer *renderer;			//The renderer SDL will use to draw to the screen
-SDL_Texture *ball_t;
-struct pix_buff ball_pb;
-int width, height;				//used if fullscreen
-struct firework fireworks[FIREWORKS];
-struct vector2d gravity;
+SDL_Window* window = NULL;				//The window we'll be rendering to
+SDL_Renderer *renderer;					//The renderer SDL will use to draw to the screen
+SDL_Texture *ball_t;					//firework texture used to render
+struct pix_buff ball_pb;				//firework pixel buffer used to draw to
+int width, height;						//used if fullscreen
+struct firework fireworks[FIREWORKS];	//the array of fireworks !
+struct vector2d gravity;				//gravity effecting the particles
 
 int main (int argc, char *args[]) {
 	
@@ -100,8 +100,8 @@ int main (int argc, char *args[]) {
 			//draw firework
 			dest.x = fireworks[i].property.pos.x;
 			dest.y = fireworks[i].property.pos.y;
-			dest.w = 5;
-			dest.h = 5;
+			dest.w = 4;
+			dest.h = 4;
 		
 			SDL_SetTextureColorMod(ball_t, fireworks[i].r, fireworks[i].g, fireworks[i].b);
 			SDL_SetTextureAlphaMod(ball_t, (uint8_t) fireworks[i].property.alpha);
@@ -121,7 +121,19 @@ int main (int argc, char *args[]) {
 				dest.w = 3;
 				dest.h = 3;
 				
+				float size = (float) k / TRAIL;
+				size *= 3;
+				
+				if (size  >= 1) {
+				
+					dest.w = 3 - size;
+					dest.h = 3 - size;
+				}
+				
+				printf("k = %d, size = %d\n", k, dest.w);
+				
 				SDL_RenderCopy(renderer, ball_t, NULL, &dest);
+				
 			}
 			
 			//draw particles
@@ -129,8 +141,8 @@ int main (int argc, char *args[]) {
 			
 				dest.x = fireworks[i].particles[j].pos.x;
 				dest.y = fireworks[i].particles[j].pos.y;
-				dest.w = 3;
-				dest.h = 3;
+				dest.w = 4;
+				dest.h = 4;
 				
 				//draw particles if the firework has exploded and has no alpha
 				
@@ -146,6 +158,17 @@ int main (int argc, char *args[]) {
 						dest.y = fireworks[i].particles[j].trail[k].y;
 						dest.w = 3;
 						dest.h = 3;
+						
+						float size = (float) k / TRAIL;
+						size *= 3;
+						
+						if (size  >= 1) {
+						
+							dest.w = 3 - size;
+							dest.h = 3 - size;
+						}
+						
+						printf("k = %d, size = %d\n", k, dest.w);
 						
 						SDL_RenderCopy(renderer, ball_t, NULL, &dest);
 					}
@@ -215,6 +238,7 @@ void update(int i) {
 			
 			//change velocity based on acceleration
 			add_vector(&fireworks[i].particles[j].vel, &gravity);
+			
 
 			//keep track th fireworks particles previous positions
 			for(k = 0; k < TRAIL; k++) {
@@ -293,7 +317,6 @@ void init_firework(int i) {
 		fireworks[i].property.trail[k].x = fireworks[i].property.pos.x;
 		fireworks[i].property.trail[k].y = fireworks[i].property.pos.y;
 	}
-
 	
 	for (j = 0; j < PARTICALS; j++) {
 		
