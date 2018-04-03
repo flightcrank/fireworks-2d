@@ -7,10 +7,10 @@
 #include "renderer.h"
 #include "vector.h"
 
-#define SCREEN_WIDTH 640	//window height
-#define SCREEN_HEIGHT 480	//window width
+#define SCREEN_WIDTH 1290	//window height
+#define SCREEN_HEIGHT 720	//window width
 #define FIREWORKS 10		//number of fireworks
-#define PARTICALS 50		//number of particles a firework explodes into
+#define PARTICALS 100		//number of particles a firework explodes into
 #define SCALE .015			//adjust how high the fireworks will go to suit your screen resolution
 #define TRAIL 3				//trail the particles leave behind
 
@@ -19,7 +19,8 @@ struct partical {
 	struct vector2d pos;			//position
 	struct vector2d vel;			//velocity
 	struct vector2d trail[TRAIL];	//array of previous positions
-	float alpha;					//acceleration
+	float alpha;					//currrent alpha value
+	float alpha_rate;				//rate at which the alpha drops per frame
 };
 
 struct firework {
@@ -121,6 +122,7 @@ int main (int argc, char *args[]) {
 				dest.w = 3;
 				dest.h = 3;
 				
+				//change size of each trail
 				float size = (float) k / TRAIL;
 				size *= 3;
 				
@@ -131,7 +133,6 @@ int main (int argc, char *args[]) {
 				}
 				
 				SDL_RenderCopy(renderer, ball_t, NULL, &dest);
-				
 			}
 			
 			//draw particles
@@ -157,6 +158,7 @@ int main (int argc, char *args[]) {
 						dest.w = 3;
 						dest.h = 3;
 						
+						//change size of each trail
 						float size = (float) k / TRAIL;
 						size *= 3;
 						
@@ -165,8 +167,6 @@ int main (int argc, char *args[]) {
 							dest.w = 3 - size;
 							dest.h = 3 - size;
 						}
-						
-						printf("k = %d, size = %d\n", k, dest.w);
 						
 						SDL_RenderCopy(renderer, ball_t, NULL, &dest);
 					}
@@ -216,15 +216,15 @@ void update(int i) {
 		//calculate particle physics
 		for(j = 0; j < PARTICALS; j++) {
 			
-			if (fireworks[i].particles[j].alpha >= 5) {
+			if (fireworks[i].particles[j].alpha >= fireworks[i].particles[j].alpha_rate) {
 				
-				fireworks[i].particles[j].alpha -= 5;
+				
+				fireworks[i].particles[j].alpha -= fireworks[i].particles[j].alpha_rate;
 
 			//particles have faded away
 			} else {
 				
-				fireworks[i].particles[j].alpha -= 0;
-				init_firework(i);
+				fireworks[i].particles[j].alpha = 0;
 			}
 			
 			//save particle previous position
@@ -237,8 +237,10 @@ void update(int i) {
 			//change velocity based on acceleration
 			add_vector(&fireworks[i].particles[j].vel, &gravity);
 			
+			//slow down particle after ever frame
+			multiply_vector(&fireworks[i].particles[j].vel, 0.97);
 
-			//keep track th fireworks particles previous positions
+			//keep track the fireworks particles previous positions
 			for(k = 0; k < TRAIL; k++) {
 				
 				//store current cell position in a temp variable
@@ -253,6 +255,12 @@ void update(int i) {
 				prev_pos_x = temp_x;
 				prev_pos_y = temp_y;
 			}
+		}
+		
+		//particle 0 always has the shortest alpha_rate. so is alpha is 0, the all particles have a 0 alpha. so reset the firework.
+		if(fireworks[i].particles[0].alpha == 0) {
+		
+			init_firework(i);
 		}
 		
 	//calculate firework physics
@@ -303,7 +311,7 @@ void init_firework(int i) {
 	fireworks[i].property.pos.x = rand() % width;
 	fireworks[i].property.pos.y = height;
 	fireworks[i].property.vel.x = sin(rand());
-	fireworks[i].property.vel.y = (float) (rand() % 5 + (int) vel_scale)  * -1;
+	fireworks[i].property.vel.y = (float) (rand() % 5 + vel_scale)  * -1;
 	fireworks[i].property.alpha = 255;
 	fireworks[i].r = rand() % 155 + 100;
 	fireworks[i].g = rand() % 155 + 100;
@@ -318,13 +326,18 @@ void init_firework(int i) {
 	
 	for (j = 0; j < PARTICALS; j++) {
 		
+		int angle = rand();
+		float vel = (float) rand() / RAND_MAX * 5; //random velocity for explosion
+		float flip = (float) rand() / RAND_MAX;
+		
 		//set up firework's particle
 		fireworks[i].particles[j].pos.x = fireworks[i].property.pos.x;
 		fireworks[i].particles[j].pos.y = fireworks[i].property.pos.y;
-		fireworks[i].particles[j].vel.x = sin(rand() % 360);
-		fireworks[i].particles[j].vel.y = sin(rand() % 360);
+		fireworks[i].particles[j].vel.x = sin(angle);	//will explode is a circular fashion
+		fireworks[i].particles[j].vel.y = cos(angle);	//will explode is a circular fashion
 		fireworks[i].particles[j].alpha = 255;
-		multiply_vector(&fireworks[i].particles[j].vel, rand() % 4 + 1);
+		fireworks[i].particles[j].alpha_rate = flip > .8 ? 4 : 6;
+		multiply_vector(&fireworks[i].particles[j].vel, vel); //change to a random velocity so it wont explode in a perfect circle
 		
 		//record of previous positions for each particle
 		for (k = 0; k < TRAIL; k++) {
@@ -333,6 +346,9 @@ void init_firework(int i) {
 			fireworks[i].particles[j].trail[k].y = fireworks[i].property.pos.y;
 		}
 	}
+	
+	//always give the first paticle the shortest alpha rate to determine when all other particles have faded out.
+	fireworks[i].particles[0].alpha_rate = 4;
 }
 
 int init(int width, int height, int argc, char *args[]) {
